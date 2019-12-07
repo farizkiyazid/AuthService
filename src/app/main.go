@@ -33,17 +33,17 @@ func hello(w http.ResponseWriter, r *http.Request) {
         // fmt.Fprintf(w, "Post from website! r.PostFrom = %v\n", r.PostForm)
         user := r.FormValue("user")
         password := r.FormValue("password")
-        if user==mockDB.User{
-            if password==mockDB.Pass{
-                token := GenerateToken(user+password)
-                myvar := map[string]interface{}{"token": token}
-                MakeRequest(user, token)
-                outputHTML(w, "hasil.html", myvar)
-            }else{
-                fmt.Fprintf(w, "Can't find matching password")
+        if mockDB.CheckOneUser(w, user, password) {
+            token := mockDB.CheckUserToken(w, user)
+            if token == "" {
+                token = GenerateToken(user+password)
+                mockDB.SetToken(user, token)
             }
+            myvar := map[string]interface{}{"token": token}
+            MakeRequest(user, token)
+            outputHTML(w, "hasil.html", myvar)
         }else{
-            fmt.Fprintf(w, "Can't find matching user")
+            fmt.Fprintf(w, "Can't find matching user or password")
         }
     default:
         fmt.Fprintf(w, "Sorry, only GET and POST methods are supported.")

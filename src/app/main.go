@@ -8,7 +8,9 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"golang.org/x/crypto/bcrypt"
-	"mockDB"
+    "mockDB"
+    "encoding/json"
+    "bytes"
 )
 
 
@@ -31,16 +33,17 @@ func hello(w http.ResponseWriter, r *http.Request) {
         // fmt.Fprintf(w, "Post from website! r.PostFrom = %v\n", r.PostForm)
         user := r.FormValue("user")
         password := r.FormValue("password")
-        // fmt.Fprintf(w, "Name = %s\n", name)
-		// fmt.Fprintf(w, "Password = %s\n", password)
         if user==mockDB.User{
             if password==mockDB.Pass{
                 token := GenerateToken(user+password)
                 myvar := map[string]interface{}{"token": token}
+                MakeRequest(user, token)
                 outputHTML(w, "hasil.html", myvar)
+            }else{
+                fmt.Fprintf(w, "Can't find matching password")
             }
         }else{
-            fmt.Fprintf(w, "Can't find matching user/password")
+            fmt.Fprintf(w, "Can't find matching user")
         }
     default:
         fmt.Fprintf(w, "Sorry, only GET and POST methods are supported.")
@@ -70,6 +73,35 @@ func GenerateToken(email string) string {
     hasher := md5.New()
     hasher.Write(hash)
     return hex.EncodeToString(hasher.Sum(nil))
+}
+
+func MakeRequest(user string, token string) {
+    //change url for bookservice
+    urlNya := "http://localhost:8080/test"
+
+	message := map[string]interface{}{
+		"user": user,
+		"token":  token,
+    }
+
+	bytesRepresentation, err := json.Marshal(message)
+	if err != nil {
+		log.Fatalln(err)
+    }
+    log.Println(message)
+    log.Println(bytesRepresentation)
+
+	resp, err := http.Post(urlNya, "application/json", bytes.NewBuffer(bytesRepresentation))
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	var result map[string]interface{}
+
+	json.NewDecoder(resp.Body).Decode(&result)
+
+	log.Println(result)
+	log.Println(result["data"])
 }
  
 func main() {
